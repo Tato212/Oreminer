@@ -52,7 +52,6 @@
 </head>
 <body>
 
-<!-- Clickable Discord Link -->
 <div id="discordLink">
   Discord link: <a href="https://discord.gg/m6atea6y" target="_blank" rel="noopener noreferrer">https://discord.gg/m6atea6y</a>
 </div>
@@ -145,7 +144,7 @@
   }
 
   function drawTerrain() {
-    ctx.fillStyle = '#445522'; // grass green
+    ctx.fillStyle = '#445522';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
@@ -171,60 +170,83 @@
       ctx.lineTo(px + 10, py + 10);
       ctx.closePath();
       ctx.fill();
-      // trunk
       ctx.fillStyle = '#553311';
       ctx.fillRect(px - 3, py + 10, 6, 10);
     });
   }
 
+  // ✅ Updated drawPlayer with models for axe and pickaxe
   function drawPlayer() {
     const px = player.animX * TILE_SIZE + TILE_SIZE / 2;
     const py = player.animY * TILE_SIZE + TILE_SIZE / 2;
 
-    ctx.strokeStyle = player.isPunching ? '#f00' : '#0f0';  // red while punching, green otherwise
-    ctx.lineWidth = 3;
+    const scale = 0.6;
 
-    // Head
+    ctx.strokeStyle = player.isPunching ? '#f00' : '#0f0';
+    ctx.lineWidth = 2;
+
     ctx.beginPath();
-    ctx.arc(px, py - 10, 8, 0, Math.PI * 2);
+    ctx.arc(px, py - 10 * scale, 8 * scale, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Body
     ctx.beginPath();
-    ctx.moveTo(px, py - 2);
-    ctx.lineTo(px, py + 15);
+    ctx.moveTo(px, py - 2 * scale);
+    ctx.lineTo(px, py + 15 * scale);
     ctx.stroke();
 
-    // Arms & Legs animation
     const frame = player.frame % 2;
     ctx.beginPath();
     if (frame === 0) {
-      ctx.moveTo(px - 10, py + 5); ctx.lineTo(px + 10, py + 5); // Arms
-      ctx.moveTo(px, py + 15); ctx.lineTo(px - 6, py + 30);
-      ctx.moveTo(px, py + 15); ctx.lineTo(px + 6, py + 30);
+      ctx.moveTo(px - 10 * scale, py + 5 * scale); ctx.lineTo(px + 10 * scale, py + 5 * scale);
+      ctx.moveTo(px, py + 15 * scale); ctx.lineTo(px - 6 * scale, py + 30 * scale);
+      ctx.moveTo(px, py + 15 * scale); ctx.lineTo(px + 6 * scale, py + 30 * scale);
     } else {
-      ctx.moveTo(px - 12, py + 2); ctx.lineTo(px, py + 7);
-      ctx.moveTo(px + 12, py + 2); ctx.lineTo(px, py + 7);
-      ctx.moveTo(px, py + 15); ctx.lineTo(px - 2, py + 32);
-      ctx.moveTo(px, py + 15); ctx.lineTo(px + 8, py + 28);
+      ctx.moveTo(px - 12 * scale, py + 2 * scale); ctx.lineTo(px, py + 7 * scale);
+      ctx.moveTo(px + 12 * scale, py + 2 * scale); ctx.lineTo(px, py + 7 * scale);
+      ctx.moveTo(px, py + 15 * scale); ctx.lineTo(px - 2 * scale, py + 32 * scale);
+      ctx.moveTo(px, py + 15 * scale); ctx.lineTo(px + 8 * scale, py + 28 * scale);
     }
     ctx.stroke();
 
     // Sword
     if (player.weapon === 'sword') {
       ctx.strokeStyle = '#ff0';
-      ctx.lineWidth = 4;
-      if (player.slashing) {
-        ctx.beginPath();
-        ctx.moveTo(px + 5, py + 5);
-        ctx.lineTo(px + 20, py - 15);
-        ctx.stroke();
-      } else {
-        ctx.beginPath();
-        ctx.moveTo(px + 10, py + 5);
-        ctx.lineTo(px + 10, py + 20);
-        ctx.stroke();
-      }
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(px + 10, py + 5);
+      ctx.lineTo(px + 10, py + 20);
+      ctx.stroke();
+    }
+
+    // Axe
+    if (player.tool === 'axe') {
+      ctx.strokeStyle = '#aaa';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px - 10, py + 5);
+      ctx.lineTo(px - 15, py - 10);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.strokeStyle = '#553311';
+      ctx.moveTo(px - 15, py - 10);
+      ctx.lineTo(px - 18, py - 2);
+      ctx.lineTo(px - 12, py - 2);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    // Pickaxe
+    if (player.tool === 'pickaxe') {
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px - 10, py + 5);
+      ctx.lineTo(px - 18, py - 5);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(px - 22, py - 5);
+      ctx.lineTo(px - 14, py - 5);
+      ctx.stroke();
     }
   }
 
@@ -260,7 +282,7 @@
     }
   }
 
-  // *** Updated tryMine function ***
+  // ✅ Modified axe to one-shot trees
   function tryMine() {
     for (let i = 0; i < orePositions.length; i++) {
       if (orePositions[i].x === player.x && orePositions[i].y === player.y) {
@@ -282,17 +304,15 @@
         return;
       }
     }
-    
-    // Trees: can punch with bare hands, axe does more damage
+
     for (let i = 0; i < treePositions.length; i++) {
       if (treePositions[i].x === player.x && treePositions[i].y === player.y) {
-        let damage = 1; // bare hands damage
+        let damage = 1;
         if (inventory.axe > 0) {
-          damage = 2; // axe does more damage
+          damage = treePositions[i].health; // one-shot!
         }
         treePositions[i].health -= damage;
 
-        // Punch animation: briefly flash red outline
         player.isPunching = true;
         setTimeout(() => {
           player.isPunching = false;
@@ -312,10 +332,7 @@
   }
 
   function tryAutoMine() {
-    if (player.slashing) {
-      // Slashing animation duration, no automated mine
-      return;
-    }
+    if (player.slashing) return;
   }
 
   function craftSword() {
@@ -346,6 +363,7 @@
     if (inventory.wood >= 3) {
       inventory.wood -= 3;
       inventory.pickaxe++;
+      player.tool = 'pickaxe';
       addMessage('Crafted a pickaxe!');
       updateInventoryUI();
     } else {
@@ -364,7 +382,6 @@
     else if (e.key === 'ArrowLeft' || e.key === 'a') movePlayer(-1, 0);
     else if (e.key === 'ArrowRight' || e.key === 'd') movePlayer(1, 0);
     else if (e.key === ' ') {
-      // Space bar attack or mine
       if (player.weapon === 'sword') {
         player.slashing = true;
         setTimeout(() => { player.slashing = false; }, 300);
@@ -383,7 +400,6 @@
     requestAnimationFrame(gameLoop);
   }
 
-  // Initialization
   player.animX = player.x;
   player.animY = player.y;
 
@@ -394,6 +410,5 @@
   gameLoop();
 })();
 </script>
-
 </body>
 </html>
